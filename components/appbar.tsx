@@ -15,7 +15,7 @@ export function Appbar() {
         <div className="flex gap-4">
           <Avatar>
             <AvatarImage
-              src={session.user.avatar || ""}
+              src={session.user.avatar || "/placeholder-avatar.png"}
               alt="User Avatar"
             />
           </Avatar>

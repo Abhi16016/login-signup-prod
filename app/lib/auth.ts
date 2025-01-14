@@ -11,7 +11,16 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          avatar: profile.picture, 
+        };
+      },
     }),
+
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -44,7 +53,7 @@ export const authOptions = {
             },
           });
 
-          return { id: newUser.id, email: newUser.email, avatar: newUser.avatar };
+          return { id: newUser.id, email: newUser.email };
         } else {
           // Login Flow
           signInSchema.parse({ email, password });
@@ -59,26 +68,30 @@ export const authOptions = {
             throw new Error("Invalid password.");
           }
 
-          return { id: user.id, email: user.email, avatar: user.avatar };
+          return { id: user.id, email: user.email };
         }
       },
     }),
   ],
+
   secret: process.env.NEXTAUTH_SECRET,
+
   callbacks: {
-    async jwt({ user, token, account }: any) {
+    async jwt({ user, token, account, profile }: any) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
-        token.avatar = user.avatar || (account?.provider === "google" ? user.image : "/placeholder-avatar.png");
+        token.avatar =
+          user.avatar || (account?.provider === "google" && profile?.picture ? profile.picture : null);
       }
       return token;
     },
+
     async session({ session, token }: any) {
       if (token) {
         session.user.id = token.id;
         session.user.email = token.email;
-        session.user.avatar = token.avatar;
+        session.user.avatar = token.avatar; 
       }
       return session;
     },
