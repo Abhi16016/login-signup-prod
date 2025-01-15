@@ -150,7 +150,7 @@ export default function Signin() {
         </Button>
 
         <div className="mt-4 text-center">
-          Don't have an account?{" "}
+          Don&ops;t have an account?{" "}
           <Link href="/auth/signup" className="text-blue-500 underline">
             Signup
           </Link>

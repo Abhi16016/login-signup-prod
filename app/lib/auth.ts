@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { signUpSchema, signInSchema } from "../lib/zod";
+import { Session, User, Account, Profile } from "next-auth";
+import { JWT } from "next-auth/jwt";
 
 const prisma = new PrismaClient();
 
@@ -16,7 +18,7 @@ export const authOptions = {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
-          avatar: profile.picture, 
+          avatar: profile.picture,
         };
       },
     }),
@@ -28,8 +30,14 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
         confirmPassword: { label: "Confirm Password", type: "password", optional: true },
       },
-      async authorize(credentials) {
-        const { email, password, confirmPassword } = credentials ?? {};
+      async authorize(
+        credentials: Record<"email" | "password" | "confirmPassword", string> | undefined
+      ): Promise<{ id: string; email: string | null } | null> {
+        if (!credentials) {
+          throw new Error("Missing credentials");
+        }
+
+        const { email, password, confirmPassword } = credentials;
 
         if (!email || !password) {
           throw new Error("Email and password are required.");
@@ -77,7 +85,17 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   callbacks: {
-    async jwt({ user, token, account, profile }: any) {
+    async jwt({
+      token,
+      user,
+      account,
+      profile,
+    }: {
+      token: JWT;
+      user?: User | null;
+      account?: Account | null;
+      profile?: Profile | null;
+    }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -87,11 +105,17 @@ export const authOptions = {
       return token;
     },
 
-    async session({ session, token }: any) {
+    async session({
+      session,
+      token,
+    }: {
+      session: Session;
+      token: JWT;
+    }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.avatar = token.avatar; 
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.avatar = token.avatar as string | null;
       }
       return session;
     },

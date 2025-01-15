@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { signOut, signIn, useSession } from "next-auth/react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { signOut, useSession } from "next-auth/react";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "./ui/button";
 
 export function Appbar() {
