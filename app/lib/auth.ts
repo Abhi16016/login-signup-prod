@@ -8,27 +8,22 @@ import { JWT } from "next-auth/jwt";
 
 const prisma = new PrismaClient();
 
-// Type for form data
 interface FormCredentials {
   email: string;
   password: string;
-  confirmPassword?: string;  // optional for signin
+  confirmPassword?: string;
 }
 
-// Type for successful auth response
 interface AuthResponse {
   id: string;
   email: string | null;
 }
 
-// Helper function to check if email is used with Google
 async function checkIfEmailUsedWithGoogle(email: string) {
-  // Find user by email
   const user = await prisma.user.findUnique({
     where: { email },
   });
 
-  // If user exists but has no password, it means they used Google to sign up
   if (user && !user.password) {
     throw new Error("This email is registered with Google. Please sign in with Google.");
   }
@@ -57,7 +52,6 @@ export const authOptions = {
         confirmPassword: { label: "Confirm Password", type: "password", optional: true },
       },
       async authorize(credentials?: FormCredentials): Promise<AuthResponse | null> {
-        // Make sure we have credentials
         if (!credentials) {
           throw new Error("Missing credentials");
         }
@@ -68,7 +62,7 @@ export const authOptions = {
           throw new Error("Email and password are required.");
         }
 
-        // Check if email is used with Google before proceeding
+          // Check if email is used with Google before proceeding
         await checkIfEmailUsedWithGoogle(email);
 
         if (confirmPassword) {
@@ -91,7 +85,7 @@ export const authOptions = {
 
           return { id: newUser.id, email: newUser.email };
         } else {
-          // Login Flow
+          // Signin Flow
           signInSchema.parse({ email, password });
 
           const user = await prisma.user.findUnique({ where: { email } });
