@@ -115,7 +115,7 @@ export const authOptions = {
       if (token) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
-        session.user.avatar = token.avatar as string | null;
+        session.user.avatar = token.avatar as string;
       }
       return session;
     },

@@ -61,7 +61,6 @@ export default function Signup() {
         router.push("/auth/signin");
       }
     } catch (error) {
-      console.error("Error during signup:", error);
       toast({
         title: "Signup Failed",
         description: "An unexpected error occurred. Please try again later.",

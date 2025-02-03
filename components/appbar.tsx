@@ -6,8 +6,12 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "./ui/button";
 
 export function Appbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter(); 
+
+  if (status === "loading") {
+    return null;
+  }
 
   return (
     <div className="absolute top-0 right-0 m-4">
@@ -15,8 +19,8 @@ export function Appbar() {
         <div className="flex gap-4">
           <Avatar>
             <AvatarImage
-              src={session.user.avatar || "/placeholder-avatar.png"}
-              alt="User Avatar"
+              src={session.user.avatar ?? "/placeholder-avatar.png"}
+              alt={`${session.user.email}'s avatar`}
             />
           </Avatar>
 

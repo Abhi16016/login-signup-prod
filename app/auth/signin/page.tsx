@@ -50,7 +50,6 @@ export default function Signin() {
       });
 
       if (result?.error) {
-        console.error("Login error:", result.error);
         toast({
           title: "Login Failed",
           description: result.error,
@@ -150,7 +149,7 @@ export default function Signin() {
         </Button>
 
         <div className="mt-4 text-center">
-          Don&ops;t have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/auth/signup" className="text-blue-500 underline">
             Signup
           </Link>
