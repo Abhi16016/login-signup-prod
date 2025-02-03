@@ -13,24 +13,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { z } from "zod";
+import { signInSchema } from "@/app/lib/zod";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
-
-const signInSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+import type { z } from "zod";
 
 export default function Signin() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-
+  const { data: session, status } = useSession();
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -39,9 +35,26 @@ export default function Signin() {
     },
   });
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      toast({
+        title: "Welcome!",
+        description: "Successfully signed in",
+      });
+      router.replace('/');
+    }
+  }, [status, router, toast]);
+
+  if (status === 'loading') {
+    return null;
+  }
+
+  if (status === 'authenticated') {
+    return null;
+  }
+
   const onSubmit = async (values: z.infer<typeof signInSchema>) => {
     setIsSubmitting(true);
-
     try {
       const result = await signIn("credentials", {
         email: values.email,
@@ -51,21 +64,17 @@ export default function Signin() {
 
       if (result?.error) {
         toast({
-          title: "Login Failed",
+          title: "Signin Failed",
           description: result.error,
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Login Successful",
-          description: "You are now logged in.",
-        });
+        // Let useEffect handle the success toast
         router.push("/");
       }
     } catch (error) {
-      console.error("Error during login:", error);
       toast({
-        title: "Login Failed",
+        title: "Signin Failed",
         description: "An unexpected error occurred. Please try again later.",
         variant: "destructive",
       });
@@ -75,20 +84,13 @@ export default function Signin() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" }).catch((error) => {
-      console.error("Error during Google Signin:", error);
-      toast({
-        title: "Signin Failed",
-        description: "An error occurred while signing in with Google.",
-        variant: "destructive",
-      });
-    });
+    signIn("google");
   };
 
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="bg-white p-6 rounded shadow-md w-96">
-        <h2 className="text-xl font-bold mb-4">Signin</h2>
+        <h2 className="text-xl font-bold mb-4">Sign In</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -128,7 +130,7 @@ export default function Signin() {
                   Please wait...
                 </>
               ) : (
-                "Signin"
+                "Sign In"
               )}
             </Button>
           </form>

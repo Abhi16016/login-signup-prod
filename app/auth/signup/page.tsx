@@ -15,18 +15,18 @@ import {
 } from "@/components/ui/form";
 import { signUpSchema } from "@/app/lib/zod";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { z } from "zod";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+import type { z } from "zod";
 
 export default function Signup() {
   const { toast } = useToast();
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -35,6 +35,24 @@ export default function Signup() {
       confirmPassword: "",
     },
   });
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      toast({
+        title: "Welcome!",
+        description: "Successfully signed up",
+      });
+      router.replace('/');
+    }
+  }, [status, router, toast]);
+
+  if (status === 'loading') {
+    return null;
+  }
+
+  if (status === 'authenticated') {
+    return null;
+  }
 
   const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
     setIsSubmitting(true);
@@ -54,11 +72,7 @@ export default function Signup() {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Signup Successful",
-          description: "Your account has been created.",
-        });
-        router.push("/auth/signin");
+        router.push("/");
       }
     } catch (error) {
       toast({
@@ -70,24 +84,15 @@ export default function Signup() {
       setIsSubmitting(false);
     }
   };
-  
 
   const handleGoogleSignUp = () => {
-    signIn("google", { callbackUrl: "/" }).catch((error) => {
-      console.error("Error during Google Signup:", error);
-      toast({
-        title: "Signup Failed",
-        description: "An error occurred while signing up with Google.",
-        variant: "destructive",
-      });
-    });
+    signIn("google");
   };
-  
 
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="bg-white p-6 rounded shadow-md w-96">
-        <h2 className="text-xl font-bold mb-4">Signup</h2>
+        <h2 className="text-xl font-bold mb-4">Sign Up</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -144,7 +149,7 @@ export default function Signup() {
                   Please wait...
                 </>
               ) : (
-                "Signup"
+                "Sign Up"
               )}
             </Button>
           </form>
@@ -167,7 +172,7 @@ export default function Signup() {
         <div className="mt-4 text-center">
           Already have an account?{" "}
           <Link href="/auth/signin" className="text-blue-500 underline">
-            Signin
+            Sign In
           </Link>
         </div>
       </div>

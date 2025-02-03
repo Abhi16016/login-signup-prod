@@ -8,6 +8,32 @@ import { JWT } from "next-auth/jwt";
 
 const prisma = new PrismaClient();
 
+// Type for form data
+interface FormCredentials {
+  email: string;
+  password: string;
+  confirmPassword?: string;  // optional for signin
+}
+
+// Type for successful auth response
+interface AuthResponse {
+  id: string;
+  email: string | null;
+}
+
+// Helper function to check if email is used with Google
+async function checkIfEmailUsedWithGoogle(email: string) {
+  // Find user by email
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  // If user exists but has no password, it means they used Google to sign up
+  if (user && !user.password) {
+    throw new Error("This email is registered with Google. Please sign in with Google.");
+  }
+}
+
 export const authOptions = {
   providers: [
     GoogleProvider({
@@ -18,7 +44,7 @@ export const authOptions = {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
-          avatar: profile.picture,
+          image: profile.picture,
         };
       },
     }),
@@ -30,9 +56,8 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
         confirmPassword: { label: "Confirm Password", type: "password", optional: true },
       },
-      async authorize(
-        credentials: Record<"email" | "password" | "confirmPassword", string> | undefined
-      ): Promise<{ id: string; email: string | null } | null> {
+      async authorize(credentials?: FormCredentials): Promise<AuthResponse | null> {
+        // Make sure we have credentials
         if (!credentials) {
           throw new Error("Missing credentials");
         }
@@ -43,13 +68,16 @@ export const authOptions = {
           throw new Error("Email and password are required.");
         }
 
+        // Check if email is used with Google before proceeding
+        await checkIfEmailUsedWithGoogle(email);
+
         if (confirmPassword) {
           // Signup Flow
           signUpSchema.parse({ email, password, confirmPassword });
 
           const existingUser = await prisma.user.findUnique({ where: { email } });
           if (existingUser) {
-            throw new Error("Email already in use.");
+            return null;  
           }
 
           const hashedPassword = await bcrypt.hash(password, 10);
@@ -85,6 +113,38 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   callbacks: {
+    async signIn({
+      user,
+      account,
+    }: {
+      user: User;
+      account: Account | null;
+    }) {
+      if (account?.provider === "google") {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email! }
+          });
+          
+          if (!existingUser) {
+            // Create user without password for Google sign-in
+            const newUser = await prisma.user.create({
+              data: {
+                email: user.email!,
+                avatar: user.image,
+                // No password for Google users
+              }
+            });
+          }
+          return true;
+        } catch (error) {
+          console.error("Error in signIn callback:", error);
+          return `/auth/signin?error=Failed to create user account`;
+        }
+      }
+      return true;
+    },
+
     async jwt({
       token,
       user,
